@@ -1,6 +1,6 @@
 ---
 - name: Openshift integration 
-  hosts: all
+  hosts: localhost
   tasks:
    - name: Create a Openshift namespace--Guestbook
      redhat.openshift.k8s:
@@ -8,7 +8,7 @@
        api_version: v1
        kind: Namespace
        state: present
-     delegate_to: localhost
+
    - name: Create a Service for Redis Leader application
      redhat.openshift.k8s:
        state: present   
@@ -30,7 +30,7 @@
              app: redis
              tier: backend
              role: leader
-     delegate_to: localhost
+
    - name: Create deployment of Redis Leader application
      redhat.openshift.k8s:
        state: present   
@@ -63,7 +63,7 @@
                      memory: 100Mi
                  ports:
                  - containerPort: 6379
-     delegate_to: localhost    
+   
    - name: Create service for Redis-Follower
      redhat.openshift.k8s:
        state: present   
@@ -84,7 +84,7 @@
              app: redis
              tier: backend
              role: follower
-     delegate_to: localhost
+
    - name: Create Deployment for Redis Follower
      redhat.openshift.k8s:
        state: present   
@@ -120,7 +120,7 @@
                    value: dns
                  ports:
                  - containerPort: 6379
-     delegate_to: localhost
+
    - name: Create service for front end application
      redhat.openshift.k8s:
        state: present   
@@ -144,7 +144,7 @@
            selector:
              app: guestbook
              tier: frontend
-     delegate_to: localhost
+
    - name: Deploy front end application
      redhat.openshift.k8s:
        state: present   
@@ -197,4 +197,4 @@
            to:
              kind: Service
              name: frontend
-     delegate_to: localhost      
+     
