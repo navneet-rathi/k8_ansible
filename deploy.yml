@@ -182,7 +182,7 @@
           # line below:
           # value: env
                  ports:
-                 - containerPort: 80
+                 - containerPort: 8080
      delegate_to: localhost 
    - name: Create route for front end application
      redhat.openshift.k8s:
