@@ -1,0 +1,89 @@
+---
+- name: Deploy WordPress on OpenShift
+  hosts: localhost
+  gather_facts: no
+  vars:
+    openshift_project: "wordpress-project"
+    openshift_user: "admin"
+    openshift_password: "password"
+    wordpress_app_name: "wordpress-app"
+    wordpress_image: "wordpress:latest"
+    mysql_image: "mysql:5.7"
+    mysql_user: "wp_user"
+    mysql_password: "wp_pass123"
+    mysql_database: "wordpress_db"
+
+  tasks:
+  - name: Login to OpenShift
+    community.okd.openshift_login:
+      api_url: "{{ openshift_api_url }}"
+      username: "{{ openshift_user }}"
+      password: "{{ openshift_password }}"
+      validate_certs: no
+
+  - name: Create a project for WordPress
+    community.okd.openshift_project:
+      name: "{{ openshift_project }}"
+      state: present
+
+  - name: Deploy MySQL Database
+    community.okd.openshift_deployment_config:
+      name: mysql
+      namespace: "{{ openshift_project }}"
+      state: present
+      replicas: 1
+      containers:
+        - name: mysql
+          image: "{{ mysql_image }}"
+          ports:
+            - container_port: 3306
+          env:
+            - name: MYSQL_USER
+              value: "{{ mysql_user }}"
+            - name: MYSQL_PASSWORD
+              value: "{{ mysql_password }}"
+            - name: MYSQL_DATABASE
+              value: "{{ mysql_database }}"
+
+  - name: Deploy WordPress Application
+    community.okd.openshift_deployment_config:
+      name: "{{ wordpress_app_name }}"
+      namespace: "{{ openshift_project }}"
+      state: present
+      replicas: 1
+      containers:
+        - name: wordpress
+          image: "{{ wordpress_image }}"
+          ports:
+            - container_port: 80
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: mysql
+            - name: WORDPRESS_DB_USER
+              value: "{{ mysql_user }}"
+            - name: WORDPRESS_DB_PASSWORD
+              value: "{{ mysql_password }}"
+            - name: WORDPRESS_DB_NAME
+              value: "{{ mysql_database }}"
+
+  - name: Expose WordPress service
+    community.okd.openshift_service:
+      name: "{{ wordpress_app_name }}"
+      namespace: "{{ openshift_project }}"
+      ports:
+        - port: 80
+          target_port: 80
+      selector:
+        app: "{{ wordpress_app_name }}"
+      state: present
+      service_type: LoadBalancer
+
+  - name: Verify Deployment Status
+    community.okd.openshift_deployment_info:
+      name: "{{ wordpress_app_name }}"
+      namespace: "{{ openshift_project }}"
+    register: deployment_info
+
+  - name: Display Deployment Status
+    debug:
+      msg: "Deployment Status: {{ deployment_info.resources[0].status }}"
